@@ -1,7 +1,8 @@
 import { McpServer, createMcpHandler } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
-const NATIVE_DDS_URL = "https://bridge-dds-native-1.onrender.com/dd";
+const DDS_WORKER_URL =
+  "https://bridge-dds-native-test.stathofotis.workers.dev/solve-dd";
 
 function createServer() {
   const server = new McpServer({
@@ -13,9 +14,7 @@ function createServer() {
     "solve_dd",
     {
       description:
-        "Calculate a 20-cell bridge double-dummy table for a complete 52-card PBN-style deal. " +
-        "Returns direct Bo Haglund DDS computational evidence. Final project DD validation remains " +
-        "subject to the project's OptimumResultTable QA rule.",
+        "Calculate and validate a bridge double-dummy 20-cell matrix for a complete 52-card PBN-style deal through the validated Bridge Analysis Workflow v1.25 Route B service. Final project DD closure still depends on caller/project context and independent-source reconciliation when applicable.",
       inputSchema: z.object({
         dealstr: z.string().describe(
           'Complete PBN-style deal, e.g. "N:handN handE handS handW", with each hand in S.H.D.C order.'
@@ -24,7 +23,7 @@ function createServer() {
     },
     async ({ dealstr }) => {
       try {
-        const response = await fetch(NATIVE_DDS_URL, {
+        const response = await fetch(DDS_WORKER_URL, {
           method: "POST",
           headers: {
             "content-type": "application/json",
@@ -41,40 +40,58 @@ function createServer() {
         } catch {
           return {
             isError: true,
-            content: [{
-              type: "text",
-              text: JSON.stringify({
-                ok: false,
-                stage: "native_dd_response",
-                http_status: response.status,
-                error: "Native DDS service returned a non-JSON response.",
-                body: bodyText.slice(0, 1000),
-              }),
-            }],
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  ok: false,
+                  stage: "validated_dd_worker_response",
+                  http_status: response.status,
+                  error:
+                    "Validated DD Worker returned a non-JSON response.",
+                  body: bodyText.slice(0, 1000),
+                }),
+              },
+            ],
           };
         }
 
         if (!response.ok) {
           return {
             isError: true,
-            content: [{ type: "text", text: JSON.stringify(payload) }],
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(payload),
+              },
+            ],
           };
         }
 
         return {
-          content: [{ type: "text", text: JSON.stringify(payload) }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(payload),
+            },
+          ],
         };
       } catch (error) {
         return {
           isError: true,
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              ok: false,
-              stage: "mcp_gateway",
-              error: error instanceof Error ? error.message : "Unknown MCP gateway error.",
-            }),
-          }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                ok: false,
+                stage: "mcp_gateway",
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Unknown MCP gateway error.",
+              }),
+            },
+          ],
         };
       }
     }
@@ -86,7 +103,11 @@ function createServer() {
 const mcpHandler = createMcpHandler(createServer);
 
 export default {
-  async fetch(request: Request, env: unknown, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: unknown,
+    ctx: ExecutionContext
+  ): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === "/") {
@@ -95,7 +116,8 @@ export default {
         service: "bridge-dds-mcp",
         mcp_endpoint: "/mcp",
         tool: "solve_dd",
-        backend: "bridge-dds-native-1.onrender.com/dd",
+        backend:
+          "bridge-dds-native-test.stathofotis.workers.dev/solve-dd",
       });
     }
 
