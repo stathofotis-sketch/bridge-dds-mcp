@@ -1,4 +1,5 @@
-import { McpServer, createMcpHandler } from "@modelcontextprotocol/server";
+import { McpServer } from "@modelcontextprotocol/server";
+import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
 const DDS_WORKER_URL =
@@ -14,12 +15,14 @@ function createServer() {
     "solve_dd",
     {
       description:
-        "Calculate and validate a bridge double-dummy 20-cell matrix for a complete 52-card PBN-style deal through the validated Bridge Analysis Workflow v1.25 Route B service. Final project DD closure still depends on caller/project context and independent-source reconciliation when applicable.",
-      inputSchema: z.object({
-        dealstr: z.string().describe(
-          'Complete PBN-style deal, e.g. "N:handN handE handS handW", with each hand in S.H.D.C order.'
-        ),
-      }),
+        "Calculate and validate a bridge double-dummy 20-cell matrix for a complete 52-card PBN-style deal through the validated Bridge Analysis Workflow v1.25 Route B service. Final project DD closure remains subject to caller/project context and independent-source reconciliation when applicable.",
+      inputSchema: {
+        dealstr: z
+          .string()
+          .describe(
+            'Complete PBN-style deal, e.g. "N:handN handE handS handW", with each hand in S.H.D.C order.'
+          ),
+      },
     },
     async ({ dealstr }) => {
       try {
@@ -42,7 +45,7 @@ function createServer() {
             isError: true,
             content: [
               {
-                type: "text",
+                type: "text" as const,
                 text: JSON.stringify({
                   ok: false,
                   stage: "validated_dd_worker_response",
@@ -61,7 +64,7 @@ function createServer() {
             isError: true,
             content: [
               {
-                type: "text",
+                type: "text" as const,
                 text: JSON.stringify(payload),
               },
             ],
@@ -71,7 +74,7 @@ function createServer() {
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: JSON.stringify(payload),
             },
           ],
@@ -81,7 +84,7 @@ function createServer() {
           isError: true,
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: JSON.stringify({
                 ok: false,
                 stage: "mcp_gateway",
@@ -100,8 +103,6 @@ function createServer() {
   return server;
 }
 
-const mcpHandler = createMcpHandler(createServer);
-
 export default {
   async fetch(
     request: Request,
@@ -110,7 +111,7 @@ export default {
   ): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname === "/") {
+    if (request.method === "GET" && url.pathname === "/") {
       return Response.json({
         ok: true,
         service: "bridge-dds-mcp",
@@ -118,9 +119,21 @@ export default {
         tool: "solve_dd",
         backend:
           "bridge-dds-native-test.stathofotis.workers.dev/solve-dd",
+        workflow: "Bridge Analysis Workflow v1.25",
+        final_dd_claim_allowed: false,
       });
     }
 
-    return mcpHandler(request, env, ctx);
+    if (url.pathname === "/mcp") {
+      return createMcpHandler(createServer)(request, env, ctx);
+    }
+
+    return Response.json(
+      {
+        ok: false,
+        error: "Use GET / for health or /mcp for MCP.",
+      },
+      { status: 404 }
+    );
   },
 };
