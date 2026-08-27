@@ -2,10 +2,11 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
-const DDS_WORKER_URL =
-  "https://bridge-dds-native-test.stathofotis.workers.dev/solve-dd";
+interface Env {
+  DDS_BACKEND: Fetcher;
+}
 
-function createServer() {
+function createServer(env: Env) {
   const server = new McpServer({
     name: "bridge-dds-mcp",
     version: "0.1.0",
@@ -26,14 +27,17 @@ function createServer() {
     },
     async ({ dealstr }) => {
       try {
-        const response = await fetch(DDS_WORKER_URL, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify({ dealstr }),
-        });
+        const response = await env.DDS_BACKEND.fetch(
+          "https://bridge-dds-native-test.internal/solve-dd",
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify({ dealstr }),
+          }
+        );
 
         const bodyText = await response.text();
         let payload: unknown;
@@ -106,7 +110,7 @@ function createServer() {
 export default {
   async fetch(
     request: Request,
-    env: unknown,
+    env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
     const url = new URL(request.url);
@@ -117,15 +121,16 @@ export default {
         service: "bridge-dds-mcp",
         mcp_endpoint: "/mcp",
         tool: "solve_dd",
-        backend:
-          "bridge-dds-native-test.stathofotis.workers.dev/solve-dd",
+        backend: "Service Binding DDS_BACKEND -> bridge-dds-native-test",
         workflow: "Bridge Analysis Workflow v1.25",
         final_dd_claim_allowed: false,
       });
     }
 
     if (url.pathname === "/mcp") {
-      return createMcpHandler(createServer)(request, env, ctx);
+      return createMcpHandler(
+        () => createServer(env)
+      )(request, env, ctx);
     }
 
     return Response.json(

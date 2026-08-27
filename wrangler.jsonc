@@ -1,7 +1,16 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "bridge-dds-mcp",
-  "main": "index.ts",
-  "compatibility_date": "2026-06-11",
-  "compatibility_flags": ["nodejs_compat"]
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "bridge-dds-mcp",
+	"main": "index.ts",
+	"compatibility_date": "2026-06-11",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"services": [
+		{
+			"binding": "DDS_BACKEND",
+			"service": "bridge-dds-native-test",
+			
+		}
+	]
 }
