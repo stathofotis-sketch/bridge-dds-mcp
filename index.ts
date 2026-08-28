@@ -3,7 +3,12 @@ import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
 interface Env {
-  DDS_BACKEND: Fetcher;
+  DDS_BACKEND: {
+    fetch(
+      input: string | URL | Request,
+      init?: RequestInit
+    ): Promise<Response>;
+  };
 }
 
 function createServer(env: Env) {
@@ -16,7 +21,7 @@ function createServer(env: Env) {
     "solve_dd",
     {
       description:
-        "Calculate and validate a bridge double-dummy 20-cell matrix for a complete 52-card PBN-style deal through the validated Bridge Analysis Workflow v1.25 Route B service. Final project DD closure remains subject to caller/project context and independent-source reconciliation when applicable.",
+        "Calculate a 20-cell bridge double-dummy matrix for a complete 52-card PBN-style deal through the validated Bridge Analysis Workflow v1.26 direct DDS computational route. The returned matrix is direct Bo Haglund DDS computational evidence via endplay.calc_dd_table. It must not be described as an OptimumResultTable, canonical OptimumResultTable-semantic output, or final project DD closure. Where an independent OptimumResultTable is available, final DD validation requires separate reconciliation under the project QA rules.",
       inputSchema: {
         dealstr: z
           .string()
@@ -111,7 +116,7 @@ export default {
   async fetch(
     request: Request,
     env: Env,
-    ctx: ExecutionContext
+    ctx: any
   ): Promise<Response> {
     const url = new URL(request.url);
 
@@ -121,8 +126,11 @@ export default {
         service: "bridge-dds-mcp",
         mcp_endpoint: "/mcp",
         tool: "solve_dd",
-        backend: "Service Binding DDS_BACKEND -> bridge-dds-native-test",
-        workflow: "Bridge Analysis Workflow v1.25",
+        backend:
+          "Service Binding DDS_BACKEND -> bridge-dds-native-test",
+        workflow: "Bridge Analysis Workflow v1.26",
+        evidence_type:
+          "direct Bo Haglund DDS computational evidence",
         final_dd_claim_allowed: false,
       });
     }
