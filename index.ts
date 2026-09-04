@@ -21,7 +21,7 @@ function createServer(env: Env) {
     "solve_dd",
     {
       description:
-        "Calculate a 20-cell bridge double-dummy matrix for a complete 52-card PBN-style deal through the validated Bridge Analysis Workflow v1.28 direct DDS computational route. The returned matrix is direct Bo Haglund DDS computational evidence via endplay.calc_dd_table. It must not be described as an OptimumResultTable, canonical OptimumResultTable-semantic output, or final project DD closure. Where an independent OptimumResultTable is available, final DD validation requires separate reconciliation under the project QA rules.",
+        "Calculate a 20-cell bridge double-dummy matrix for a complete 52-card PBN-style deal through the validated Bridge Analysis Workflow v1.29 direct DDS computational route. The returned matrix is direct Bo Haglund DDS computational evidence via endplay.calc_dd_table. It must not be described as an OptimumResultTable, canonical OptimumResultTable-semantic output, or final project DD closure. Where an independent OptimumResultTable is available, final DD validation requires separate reconciliation under the project QA rules.",
       inputSchema: {
         dealstr: z
           .string()
@@ -128,7 +128,7 @@ export default {
         tool: "solve_dd",
         backend:
           "Service Binding DDS_BACKEND -> bridge-dds-native-test",
-        workflow: "Bridge Analysis Workflow v1.28",
+        workflow: "Bridge Analysis Workflow v1.29",
         evidence_type:
           "direct Bo Haglund DDS computational evidence",
         final_dd_claim_allowed: false,
